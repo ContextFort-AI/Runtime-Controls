@@ -337,7 +337,7 @@ def main():
     judge_model = os.environ.get("CLAUDE_JUDGE_MODEL", "llama-3.2-3b")
     block_on_reject = os.environ.get("CLAUDE_BLOCK_ON_REJECT", "1") == "1"
     block_on_unsure = os.environ.get("CLAUDE_BLOCK_ON_UNSURE", "0") == "1"
-    interactive_mode = os.environ.get("CLAUDE_INTERACTIVE", "0") == "1"
+    interactive_mode = os.environ.get("CLAUDE_INTERACTIVE", "1") == "1"
 
     monitor = GuardedMonitor(
         enable_judge=enable_judge,
@@ -382,26 +382,32 @@ def main():
                         print(f"⚡ User override: allowing {tool_name}", file=sys.stderr)
                         sys.exit(0)
                     else:
-                        # User confirmed block
+                        # User confirmed block - use Claude Code's proper format
+                        print(f"🚫 User blocked: {reason}", file=sys.stderr)
                         output = {
-                            "decision": "block",
-                            "reason": f"User blocked: {reason}",
+                            "hookSpecificOutput": {
+                                "hookEventName": "PreToolUse",
+                                "permissionDecision": "deny",
+                                "permissionDecisionReason": f"User blocked: {reason}",
+                            }
                         }
                         print(json.dumps(output))
-                        sys.exit(2)
+                        sys.exit(0)  # Exit 0 with deny permission
                 else:
                     # NON-INTERACTIVE MODE: Auto-block
                     print(f"🚫 BLOCKED: {verdict} ({confidence:.0%})", file=sys.stderr)
                     print(f"   Reason: {reason}", file=sys.stderr)
                     print(f"   Target: {target}", file=sys.stderr)
-                    print(f"   (Set CLAUDE_INTERACTIVE=1 to prompt for confirmation)", file=sys.stderr)
 
                     output = {
-                        "decision": "block",
-                        "reason": f"Security judge: {reason}",
+                        "hookSpecificOutput": {
+                            "hookEventName": "PreToolUse",
+                            "permissionDecision": "deny",
+                            "permissionDecisionReason": f"Security judge: {reason}",
+                        }
                     }
                     print(json.dumps(output))
-                    sys.exit(2)
+                    sys.exit(0)  # Exit 0 with deny permission
             else:
                 # Allowed but logged
                 icon = {"ALLOW": "✅", "UNSURE": "⚠️", "REJECT": "🚫"}.get(verdict, "❓")
