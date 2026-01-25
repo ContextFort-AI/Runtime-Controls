@@ -659,9 +659,17 @@ class WriteJudge:
                 if pattern in code:
                     return (True, f"DANGEROUS CODE: {reason}")
 
-        # Unknown MCP tools - flag for review
+        # Unknown MCP tools - flag based on operation type
         if tool_name.startswith("mcp__") and tool_name not in {"mcp__ide__getDiagnostics", "mcp__ide__executeCode"}:
-            return (True, f"UNKNOWN MCP: Review {tool_name} before allowing")
+            # Identify MCP write operations (create, add, update, edit, delete, post, send)
+            tool_lower = tool_name.lower()
+            write_indicators = ["create", "add", "update", "edit", "delete", "post", "send", "write", "remove", "transition"]
+            is_write_op = any(indicator in tool_lower for indicator in write_indicators)
+
+            if is_write_op:
+                return (True, f"HIGH RISK: Unknown MCP write operation {tool_name}")
+            else:
+                return (True, f"MEDIUM RISK: Unknown MCP read operation {tool_name}")
 
         return (False, None)  # Seems safe
 
