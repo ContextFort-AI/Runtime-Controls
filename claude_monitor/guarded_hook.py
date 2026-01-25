@@ -271,13 +271,73 @@ class GuardedMonitor(RuntimeMonitor):
         return log_entry
 
 
+def prompt_user_confirmation(tool_name: str, target: str, reason: str, verdict: str, confidence: float) -> bool:
+    """
+    Prompt user for confirmation on suspicious operations.
+
+    Reads from /dev/tty to get user input (since stdin has JSON from Claude Code).
+    Returns True if user allows, False if user blocks.
+    """
+    try:
+        # Open the terminal directly for input
+        tty = open('/dev/tty', 'r')
+    except (OSError, FileNotFoundError):
+        # No TTY available (non-interactive), default to block
+        print("⚠️  No TTY available for confirmation, blocking by default", file=sys.stderr)
+        return False
+
+    try:
+        # Display the warning box
+        print("\n", file=sys.stderr)
+        print("┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓", file=sys.stderr)
+        print("┃  ⚠️  SUSPICIOUS OPERATION DETECTED                        ┃", file=sys.stderr)
+        print("┣━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┫", file=sys.stderr)
+        print(f"┃  Tool:   {tool_name:<48} ┃", file=sys.stderr)
+        print(f"┃  Target: {target[:48]:<48} ┃", file=sys.stderr)
+        print(f"┃  Verdict: {verdict} ({confidence:.0%} confidence){' '*(35-len(verdict))} ┃", file=sys.stderr)
+        print("┣━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┫", file=sys.stderr)
+        # Word wrap reason
+        reason_lines = [reason[i:i+55] for i in range(0, len(reason), 55)]
+        for line in reason_lines[:3]:  # Max 3 lines
+            print(f"┃  {line:<57} ┃", file=sys.stderr)
+        print("┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛", file=sys.stderr)
+        print("", file=sys.stderr)
+
+        # Prompt for input
+        print("Allow this operation? [y/N]: ", end="", file=sys.stderr, flush=True)
+
+        # Read user input with timeout
+        import select
+        # Wait up to 30 seconds for input
+        ready, _, _ = select.select([tty], [], [], 30.0)
+
+        if ready:
+            response = tty.readline().strip().lower()
+            allowed = response in ('y', 'yes')
+
+            if allowed:
+                print("✅ User ALLOWED the operation", file=sys.stderr)
+            else:
+                print("🚫 User BLOCKED the operation", file=sys.stderr)
+
+            return allowed
+        else:
+            # Timeout - default to block
+            print("\n⏰ Timeout waiting for response, blocking by default", file=sys.stderr)
+            return False
+
+    finally:
+        tty.close()
+
+
 def main():
     """Entry point for guarded hook."""
     # Configuration from environment
     enable_judge = os.environ.get("CLAUDE_JUDGE_ENABLED", "1") == "1"
-    judge_model = os.environ.get("CLAUDE_JUDGE_MODEL", "qwen2.5-0.5b")
+    judge_model = os.environ.get("CLAUDE_JUDGE_MODEL", "llama-3.2-3b")
     block_on_reject = os.environ.get("CLAUDE_BLOCK_ON_REJECT", "1") == "1"
     block_on_unsure = os.environ.get("CLAUDE_BLOCK_ON_UNSURE", "0") == "1"
+    interactive_mode = os.environ.get("CLAUDE_INTERACTIVE", "0") == "1"
 
     monitor = GuardedMonitor(
         enable_judge=enable_judge,
@@ -294,7 +354,7 @@ def main():
         tool_name = log_entry.get("tool", "")
         risk = log_entry.get("risk", "UNKNOWN")
 
-        # Check if judge blocked this
+        # Check if judge flagged this
         judge_decision = log_entry.get("judge_decision", {})
         if judge_decision:
             verdict = judge_decision.get("verdict", "")
@@ -302,19 +362,46 @@ def main():
             allow = judge_decision.get("allow", True)
             confidence = judge_decision.get("confidence", 0)
 
-            if not allow:
-                # BLOCK THE OPERATION
-                print(f"BLOCKED by judge: {verdict} ({confidence:.0%} confidence)", file=sys.stderr)
-                print(f"Reason: {reason}", file=sys.stderr)
+            # Get target for display
+            tool_input = input_data.get("tool_input", {})
+            target = tool_input.get("file_path", tool_input.get("command", str(tool_input)[:50]))
 
-                # Exit with non-zero to signal Claude Code to block
-                # Output JSON to indicate blocking
-                output = {
-                    "decision": "block",
-                    "reason": f"Security judge: {reason}",
-                }
-                print(json.dumps(output))
-                sys.exit(2)  # Non-zero exit blocks the tool
+            if not allow:
+                if interactive_mode:
+                    # INTERACTIVE MODE: Ask user for confirmation
+                    user_allowed = prompt_user_confirmation(
+                        tool_name=tool_name,
+                        target=target,
+                        reason=reason,
+                        verdict=verdict,
+                        confidence=confidence,
+                    )
+
+                    if user_allowed:
+                        # User override - allow the operation
+                        print(f"⚡ User override: allowing {tool_name}", file=sys.stderr)
+                        sys.exit(0)
+                    else:
+                        # User confirmed block
+                        output = {
+                            "decision": "block",
+                            "reason": f"User blocked: {reason}",
+                        }
+                        print(json.dumps(output))
+                        sys.exit(2)
+                else:
+                    # NON-INTERACTIVE MODE: Auto-block
+                    print(f"🚫 BLOCKED: {verdict} ({confidence:.0%})", file=sys.stderr)
+                    print(f"   Reason: {reason}", file=sys.stderr)
+                    print(f"   Target: {target}", file=sys.stderr)
+                    print(f"   (Set CLAUDE_INTERACTIVE=1 to prompt for confirmation)", file=sys.stderr)
+
+                    output = {
+                        "decision": "block",
+                        "reason": f"Security judge: {reason}",
+                    }
+                    print(json.dumps(output))
+                    sys.exit(2)
             else:
                 # Allowed but logged
                 icon = {"ALLOW": "✅", "UNSURE": "⚠️", "REJECT": "🚫"}.get(verdict, "❓")
