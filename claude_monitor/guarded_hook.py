@@ -368,31 +368,32 @@ def main():
 
             if not allow:
                 if interactive_mode:
-                    # INTERACTIVE MODE: Ask user for confirmation
-                    user_allowed = prompt_user_confirmation(
-                        tool_name=tool_name,
-                        target=target,
-                        reason=reason,
-                        verdict=verdict,
-                        confidence=confidence,
-                    )
-
-                    if user_allowed:
-                        # User override - allow the operation
-                        print(f"⚡ User override: allowing {tool_name}", file=sys.stderr)
-                        sys.exit(0)
-                    else:
-                        # User confirmed block - use Claude Code's proper format
-                        print(f"🚫 User blocked: {reason}", file=sys.stderr)
+                    # INTERACTIVE MODE: Show warning with permission prompt
+                    # Write/Edit use VS Code diff which doesn't show permissionDecisionReason
+                    # So for those, use "deny" with helpful message; for Bash use "ask"
+                    if tool_name in {"Write", "Edit", "NotebookEdit"}:
+                        # For file edits, deny with clear message (VS Code diff doesn't show reason)
+                        print(f"🚫 BLOCKED: {reason}", file=sys.stderr)
+                        print(f"   Target: {target}", file=sys.stderr)
+                        print(f"   To allow: Re-run and approve, or add path to allowlist", file=sys.stderr)
                         output = {
                             "hookSpecificOutput": {
                                 "hookEventName": "PreToolUse",
                                 "permissionDecision": "deny",
-                                "permissionDecisionReason": f"User blocked: {reason}",
+                                "permissionDecisionReason": f"⚠️ {reason} | Target: {target[:40]}",
                             }
                         }
-                        print(json.dumps(output))
-                        sys.exit(0)  # Exit 0 with deny permission
+                    else:
+                        # For Bash, use "ask" - the reason shows in the prompt
+                        output = {
+                            "hookSpecificOutput": {
+                                "hookEventName": "PreToolUse",
+                                "permissionDecision": "ask",
+                                "permissionDecisionReason": f"⚠️ {reason}",
+                            }
+                        }
+                    print(json.dumps(output))
+                    sys.exit(0)
                 else:
                     # NON-INTERACTIVE MODE: Auto-block
                     print(f"🚫 BLOCKED: {verdict} ({confidence:.0%})", file=sys.stderr)
