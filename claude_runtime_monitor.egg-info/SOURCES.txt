@@ -1,0 +1,15 @@
+README.md
+pyproject.toml
+setup.py
+claude_monitor/__init__.py
+claude_monitor/cli.py
+claude_monitor/guarded_hook.py
+claude_monitor/judge.py
+claude_monitor/monitor.py
+claude_monitor/taxonomy.py
+claude_runtime_monitor.egg-info/PKG-INFO
+claude_runtime_monitor.egg-info/SOURCES.txt
+claude_runtime_monitor.egg-info/dependency_links.txt
+claude_runtime_monitor.egg-info/entry_points.txt
+claude_runtime_monitor.egg-info/requires.txt
+claude_runtime_monitor.egg-info/top_level.txt

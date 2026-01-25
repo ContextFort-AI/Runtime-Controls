@@ -1,0 +1,195 @@
+Metadata-Version: 2.4
+Name: claude-runtime-monitor
+Version: 0.2.0
+Summary: Security monitoring and audit logging for Claude Code with embedded LLM judge
+Author: Security Team
+License: MIT
+Classifier: Development Status :: 3 - Alpha
+Classifier: Intended Audience :: Developers
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Programming Language :: Python :: 3
+Requires-Python: >=3.8
+Description-Content-Type: text/markdown
+Provides-Extra: judge
+Requires-Dist: llama-cpp-python>=0.2.0; extra == "judge"
+Provides-Extra: all
+Requires-Dist: llama-cpp-python>=0.2.0; extra == "all"
+Dynamic: requires-python
+
+# Claude Runtime Monitor
+
+Security monitoring and audit logging for Claude Code tool calls.
+
+## Features
+
+- **Full Audit Trail**: Logs every tool call with complete context
+- **Prompt Attribution**: Links tool calls back to the user prompt that triggered them
+- **Risk Classification**: Automatic risk scoring based on tool type
+- **External Contact Tracking**: Identifies when Claude contacts external resources
+- **Real-time Monitoring**: Live tail of security events
+
+## Quick Start
+
+```bash
+# Install
+python install.py
+
+# Restart Claude Code
+exit  # from Claude Code
+claude  # start new session
+
+# View logs
+python -m claude_monitor.cli stats
+python -m claude_monitor.cli watch
+```
+
+## What Gets Logged
+
+Every tool call is logged with:
+
+| Field | Description |
+|-------|-------------|
+| `timestamp` | When the tool was called |
+| `event` | PreToolUse, PostToolUse, UserPromptSubmit |
+| `tool` | Tool name (Bash, Read, WebFetch, etc.) |
+| `risk` | Risk level (EXT-RW-CRITICAL, EXT-READ-HIGH, etc.) |
+| `triggering_prompt` | The user message that led to this action |
+| `reason` | Description of why the tool was called |
+| `parameters` | Full tool parameters |
+| `output` | Tool response (in PostToolUse events) |
+| `classification` | Category, direction, injection/action risk |
+
+## Tool Classification
+
+### Risk Levels
+
+| Level | Meaning |
+|-------|---------|
+| `EXT-RW-CRITICAL` | External + Read-Write + Critical risk |
+| `EXT-READ-HIGH` | External + Read + High injection risk |
+| `EXT-WRITE-HIGH` | External + Write + High action risk |
+| `INT-MINIMAL` | Internal tool, minimal risk |
+
+### High-Risk Tools
+
+| Tool | Risk | Reason |
+|------|------|--------|
+| `WebFetch` | CRITICAL injection | Fetches arbitrary URLs |
+| `Bash` | CRITICAL action | Can execute any command |
+| `mcp__ide__executeCode` | CRITICAL action | Arbitrary code execution |
+| `Read` | HIGH injection | File contents flow into context |
+| `WebSearch` | HIGH injection | Search results can inject |
+| `Write/Edit` | HIGH action | Can modify filesystem |
+
+## CLI Commands
+
+```bash
+# Live monitoring
+python -m claude_monitor.cli watch        # All events
+python -m claude_monitor.cli watch-high   # High-risk only
+
+# View logs
+python -m claude_monitor.cli stats        # Statistics
+python -m claude_monitor.cli high-risk    # High-risk events
+python -m claude_monitor.cli external     # External contact events
+python -m claude_monitor.cli prompts      # User prompts only
+
+# Search and export
+python -m claude_monitor.cli search "WebFetch"
+python -m claude_monitor.cli export logs.json
+
+# Maintenance
+python -m claude_monitor.cli clear        # Clear logs
+```
+
+## Log Files
+
+Logs are stored in `~/.claude/security-logs/`:
+
+| File | Contents |
+|------|----------|
+| `all-events.jsonl` | All logged events |
+| `external-contact.jsonl` | Events contacting external resources |
+| `high-risk.jsonl` | CRITICAL and HIGH risk events |
+| `state/` | Session state for prompt tracking |
+
+## Example Log Entry
+
+```json
+{
+  "timestamp": "2026-01-24T22:48:28.230778",
+  "session_id": "12302dde",
+  "event": "PreToolUse",
+  "tool": "Bash",
+  "risk": "EXT-RW-CRITICAL",
+  "classification": {
+    "category": "shell",
+    "external_contact": true,
+    "direction": "READ-WRITE",
+    "injection_risk": "HIGH",
+    "action_risk": "CRITICAL"
+  },
+  "reason": "Check if prompt is captured correctly",
+  "triggering_prompt": {
+    "prompt": "restarted you",
+    "prompt_time": "2026-01-24T22:48:23.668087",
+    "tool_call_index": 1
+  },
+  "parameters": {
+    "command": "cat ~/.claude/security-logs/all-events.jsonl | tail -3 | jq '.'",
+    "description": "Check if prompt is captured correctly"
+  }
+}
+```
+
+## Uninstall
+
+```bash
+python uninstall.py              # Keep logs
+python uninstall.py --remove-logs  # Remove logs too
+```
+
+## Architecture
+
+```
+User Prompt
+    │
+    ├── UserPromptSubmit hook → Save prompt to state
+    │
+    ├── PreToolUse hook → Log with prompt attribution
+    │       │
+    │       └── Tool executes
+    │
+    └── PostToolUse hook → Log with output
+```
+
+## Extending
+
+### Custom Classifications
+
+Edit `claude_monitor/taxonomy.py` to add custom tool classifications:
+
+```python
+TOOL_CLASSIFICATION["my_mcp_tool"] = {
+    "category": "custom",
+    "external_contact": True,
+    "direction": "READ",
+    "injection_risk": "HIGH",
+    "action_risk": "NONE",
+}
+```
+
+### Blocking Controls
+
+To block actions (return exit code 2 from hook):
+
+```python
+# In monitor.py, add blocking logic:
+if should_block(tool_name, parameters):
+    print("BLOCKED: Unauthorized action", file=sys.stderr)
+    sys.exit(2)  # Exit code 2 = block the action
+```
+
+## License
+
+MIT
