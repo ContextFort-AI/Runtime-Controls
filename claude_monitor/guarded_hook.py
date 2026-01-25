@@ -32,11 +32,21 @@ from typing import Optional, Dict, Any
 from .monitor import RuntimeMonitor
 from .taxonomy import get_tool_classification
 
-# Write tools that need judgment
+# Tools that need security judgment
+# Write tools - can modify filesystem
 WRITE_TOOLS = {"Write", "Edit", "Bash", "NotebookEdit"}
+
+# MCP tools with critical risk
+CRITICAL_MCP_TOOLS = {"mcp__ide__executeCode"}  # Arbitrary code execution
+
+# Network tools - can fetch malicious content or exfiltrate data
+NETWORK_TOOLS = {"WebFetch", "WebSearch"}
 
 # Tools where we should check for write operations
 MAYBE_WRITE_TOOLS = {"Bash"}  # Bash can both read and write
+
+# All tools that need judgment
+GUARDED_TOOLS = WRITE_TOOLS | CRITICAL_MCP_TOOLS | NETWORK_TOOLS
 
 
 class GuardedMonitor(RuntimeMonitor):
@@ -78,31 +88,31 @@ class GuardedMonitor(RuntimeMonitor):
                 self.enable_judge = False
         return self._judge
 
-    def _is_write_tool(self, tool_name: str, params: dict) -> bool:
-        """Check if this tool call is a write operation."""
+    def _is_guarded_tool(self, tool_name: str, params: dict) -> bool:
+        """Check if this tool call needs security judgment."""
+        # File write tools
         if tool_name in {"Write", "Edit", "NotebookEdit"}:
             return True
 
+        # Critical MCP tools
+        if tool_name in CRITICAL_MCP_TOOLS:
+            return True
+
+        # Unknown MCP tools - treat with caution
+        if tool_name.startswith("mcp__") and tool_name not in {"mcp__ide__getDiagnostics"}:
+            return True
+
+        # Network tools
+        if tool_name in NETWORK_TOOLS:
+            return True
+
+        # Bash with write/dangerous indicators
         if tool_name == "Bash":
             cmd = params.get("command", "")
-            # Check for write indicators
             write_indicators = [
-                ">",  # Redirect
-                ">>",  # Append
-                "tee ",
-                "mv ",
-                "cp ",
-                "rm ",
-                "mkdir ",
-                "touch ",
-                "chmod ",
-                "chown ",
-                "curl.*-o",
-                "wget ",
-                "git push",
-                "git commit",
-                "npm publish",
-                "pip install",
+                ">", ">>", "tee ", "mv ", "cp ", "rm ", "mkdir ", "touch ",
+                "chmod ", "chown ", "curl", "wget ", "git push", "git commit",
+                "npm publish", "pip install", "nc ", "netcat", "/dev/tcp",
             ]
             for indicator in write_indicators:
                 if indicator in cmd:
@@ -112,10 +122,10 @@ class GuardedMonitor(RuntimeMonitor):
 
     def _should_judge(self, tool_name: str, params: dict) -> bool:
         """Determine if this operation needs judgment."""
-        if not self._is_write_tool(tool_name, params):
+        if not self._is_guarded_tool(tool_name, params):
             return False
 
-        # Use quick heuristic check first
+        # Use quick heuristic check
         judge = self._get_judge()
         if judge:
             is_suspicious, _ = judge.quick_check(tool_name, params)

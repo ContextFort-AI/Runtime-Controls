@@ -601,6 +601,68 @@ class WriteJudge:
             if ">" in cmd and not any(safe in cmd for safe in ["stdout", "stderr", "/dev/null", ".log", ".txt", ".json", ".py"]):
                 return (True, "REDIRECT: Writing to unknown location")
 
+        # WebFetch - check for suspicious URLs
+        if tool_name == "WebFetch":
+            url = params.get("url", "").lower()
+            suspicious_url_patterns = [
+                ("pastebin.com", "Fetching from pastebin (common malware host)"),
+                ("raw.githubusercontent.com", "Fetching raw code from GitHub"),
+                ("gist.githubusercontent.com", "Fetching raw gist"),
+                (".onion", "Fetching from Tor hidden service"),
+                ("bit.ly", "Fetching from URL shortener"),
+                ("tinyurl.com", "Fetching from URL shortener"),
+                ("ngrok.io", "Fetching from ngrok tunnel"),
+                ("localtonet.com", "Fetching from tunnel service"),
+                ("file://", "Fetching local file via URL"),
+                ("127.0.0.1", "Fetching from localhost"),
+                ("0.0.0.0", "Fetching from localhost"),
+                ("localhost", "Fetching from localhost"),
+                (".sh", "Fetching shell script"),
+                (".ps1", "Fetching PowerShell script"),
+            ]
+            for pattern, reason in suspicious_url_patterns:
+                if pattern in url:
+                    return (True, f"SUSPICIOUS URL: {reason}")
+
+        # WebSearch - check for recon queries
+        if tool_name == "WebSearch":
+            query = params.get("query", "").lower()
+            suspicious_queries = [
+                ("password", "Searching for passwords"),
+                ("credential", "Searching for credentials"),
+                ("api key", "Searching for API keys"),
+                ("exploit", "Searching for exploits"),
+                ("vulnerability", "Searching for vulnerabilities"),
+                ("bypass", "Searching for bypass techniques"),
+            ]
+            for pattern, reason in suspicious_queries:
+                if pattern in query:
+                    return (True, f"SUSPICIOUS SEARCH: {reason}")
+
+        # MCP code execution - check for dangerous code
+        if tool_name == "mcp__ide__executeCode":
+            code = params.get("code", "").lower()
+            dangerous_code_patterns = [
+                ("os.system", "Executing shell commands"),
+                ("subprocess", "Executing subprocess"),
+                ("eval(", "Using eval"),
+                ("exec(", "Using exec"),
+                ("__import__", "Dynamic import"),
+                ("open('/etc", "Reading system files"),
+                ("open(\"/etc", "Reading system files"),
+                (".ssh", "Accessing SSH directory"),
+                ("requests.get", "Making network request"),
+                ("urllib", "Making network request"),
+                ("socket.", "Using raw sockets"),
+            ]
+            for pattern, reason in dangerous_code_patterns:
+                if pattern in code:
+                    return (True, f"DANGEROUS CODE: {reason}")
+
+        # Unknown MCP tools - flag for review
+        if tool_name.startswith("mcp__") and tool_name not in {"mcp__ide__getDiagnostics", "mcp__ide__executeCode"}:
+            return (True, f"UNKNOWN MCP: Review {tool_name} before allowing")
+
         return (False, None)  # Seems safe
 
 
