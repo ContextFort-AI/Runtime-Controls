@@ -1,3 +1,0 @@
-[console_scripts]
-claude-judge = claude_monitor.judge:main
-claude-monitor = claude_monitor.cli:main

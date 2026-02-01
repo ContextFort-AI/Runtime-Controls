@@ -1,6 +1,0 @@
-
-[all]
-llama-cpp-python>=0.2.0
-
-[judge]
-llama-cpp-python>=0.2.0
