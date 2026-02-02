@@ -16,25 +16,8 @@ if ENV_FILE.exists():
             k, v = line.split("=", 1)
             os.environ[k.strip()] = v.strip()
 
-def unwrap_mcp_response(tool_response):
-    """Unwrap MCP content-block format to get the actual response data."""
-    # MCP responses come as: [{'type': 'text', 'text': '{"actual": "json"}'}]
-    if isinstance(tool_response, list) and len(tool_response) > 0:
-        first_block = tool_response[0]
-        if isinstance(first_block, dict) and first_block.get("type") == "text":
-            text_content = first_block.get("text", "")
-            try:
-                return json.loads(text_content)
-            except (json.JSONDecodeError, TypeError):
-                return text_content
-    return tool_response
-
-
 def extract_attacker_content(tool_name, tool_response):
     """Extract only attacker-controllable content from tool responses."""
-
-    # Unwrap MCP response format first
-    tool_response = unwrap_mcp_response(tool_response)
 
     if tool_name == "WebFetch":
         # Entire response is external content
