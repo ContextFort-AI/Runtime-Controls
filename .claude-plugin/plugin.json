@@ -1,0 +1,9 @@
+{
+  "name": "runtime-monitor",
+  "version": "1.0.0",
+  "description": "Runtime security monitor for Claude Code - detects prompt injection and verifies user intent for external tool calls",
+  "author": {
+    "name": "ashwin"
+  },
+  "homepage": "https://github.com/ashwin/claude-runtime-monitor"
+}

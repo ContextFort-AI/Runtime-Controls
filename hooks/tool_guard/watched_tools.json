@@ -1,0 +1,88 @@
+{
+  "mcp-write-external": [
+    "mcp__atlassian__createConfluencePage",
+    "mcp__atlassian__updateConfluencePage",
+    "mcp__atlassian__createConfluenceFooterComment",
+    "mcp__atlassian__createConfluenceInlineComment",
+    "mcp__atlassian__createJiraIssue",
+    "mcp__atlassian__editJiraIssue",
+    "mcp__atlassian__addCommentToJiraIssue",
+    "mcp__atlassian__transitionJiraIssue",
+    "mcp__atlassian__addWorklogToJiraIssue"
+  ],
+  "bash-write-external": {
+    "scp": [
+      "scp\\s+.*\\s+[^\\s]+@[^\\s]+:"
+    ],
+    "rsync": [
+      "rsync\\s+.*\\s+[^\\s]+@[^\\s]+:"
+    ],
+    "sftp": [
+      "sftp\\s+.*[^\\s]+@"
+    ],
+    "curl": [
+      "curl\\s+.*(-X\\s*(POST|PUT|PATCH|DELETE)|--data|-d\\s|--upload-file|-T\\s|-F\\s)"
+    ],
+    "wget": [
+      "wget\\s+.*--post-data|wget\\s+.*--method\\s*(POST|PUT)"
+    ],
+    "ssh": [
+      "ssh\\s+.*[^\\s]+@[^\\s]+.*['\"]?[^'\"]+['\"]?"
+    ],
+    "git": [
+      "git\\s+(push|remote\\s+add)"
+    ],
+    "docker": [
+      "docker\\s+(push|login)"
+    ],
+    "aws": [
+      "aws\\s+s3\\s+(cp|sync|mv)\\s+.*\\s+s3://",
+      "aws\\s+.*--upload"
+    ],
+    "gcloud": [
+      "gcloud\\s+.*upload|gsutil\\s+(cp|rsync)\\s+.*\\s+gs://"
+    ],
+    "kubectl": [
+      "kubectl\\s+(apply|create|delete|patch)"
+    ],
+    "npm": [
+      "npm\\s+publish"
+    ],
+    "pip": [
+      "pip\\s+upload|twine\\s+upload"
+    ],
+    "nc": [
+      "nc\\s+"
+    ],
+    "netcat": [
+      "netcat\\s+"
+    ],
+    "telnet": [
+      "telnet\\s+"
+    ],
+    "ftp": [
+      "ftp\\s+"
+    ],
+    "mail": [
+      "mail\\s+",
+      "sendmail\\s+"
+    ],
+    "cat": [],
+    "ls": [],
+    "grep": [],
+    "find": [],
+    "head": [],
+    "tail": [],
+    "less": [],
+    "more": [],
+    "pwd": [],
+    "cd": [],
+    "echo": [],
+    "which": [],
+    "man": [],
+    "python": [],
+    "python3": [],
+    "node": [],
+    "htop": []
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "name": "runtime-monitor-marketplace",
+  "description": "Local marketplace for runtime-monitor plugin",
+  "plugins": [
+    {
+      "name": "runtime-monitor",
+      "version": "1.0.0",
+      "description": "Runtime security monitor for Claude Code",
+      "path": "."
+    }
+  ]
+}
