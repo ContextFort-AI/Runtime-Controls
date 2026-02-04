@@ -1,12 +1,15 @@
 {
   "name": "contextfort-marketplace",
   "description": "ContextFort security plugins for Claude Code",
+  "owner": {
+    "name": "ContextFort"
+  },
   "plugins": [
     {
       "name": "contextfort",
       "version": "1.0.0",
       "description": "Runtime security - blocks write-external commands and dangerous bash patterns",
-      "path": "."
+      "source": "./"
     }
   ]
 }
