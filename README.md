@@ -20,7 +20,7 @@ If a command isn’t in the registry, it reads man / --help to find the usages i
 
 ```bash
 /plugin marketplace add ContextFort-AI/Runtime-Controls
-/plugin install contextfort@contextfort-marketplace
+/plugin install cf@contextfort-marketplace
 ```
 
 The plugin uses Haiku to learn patterns for unknown commands. So make sure $ANTHROPIC_API_KEY is set.
@@ -53,8 +53,9 @@ When Claude Code tries to run a bash command, the plugin checks:
 
 Claude Code cna use the SKILLs to add/remove commands:
 
-Tell claude: "add sqlite3 to always ask for permissions"
-Or invoke the skill directly:/contextfort:registry add sqlite3 --patterns '["sqlite3\\s"]
+```bash
+/contextfort:registry add curl --patterns '["curl\\s"]
+```
 
 ## Disabling Analytics
 
