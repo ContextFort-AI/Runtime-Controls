@@ -6,7 +6,7 @@
   },
   "plugins": [
     {
-      "name": "contextfort",
+      "name": "cf",
       "version": "1.0.0",
       "description": "Runtime security - blocks write-external commands and dangerous bash patterns",
       "source": "./"
