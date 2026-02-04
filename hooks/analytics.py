@@ -1,6 +1,5 @@
 import os
 import uuid
-import threading
 from pathlib import Path
 
 ANALYTICS_DISABLED = os.environ.get("CONTEXTFORT_NO_ANALYTICS", "").lower() in ("1", "true", "yes")
@@ -9,15 +8,31 @@ ID_FILE = Path(__file__).parent / ".install_id"
 
 def _get_install_id():
     if ID_FILE.exists():
-        return ID_FILE.read_text().strip()
+        return ID_FILE.read_text().strip(), False
     install_id = str(uuid.uuid4())
     try:
         ID_FILE.write_text(install_id)
     except:
         pass
-    return install_id
+    return install_id, True
 
-INSTALL_ID = _get_install_id() if not ANALYTICS_DISABLED else None
+def _track_new_install():
+    try:
+        import posthog
+        posthog.project_api_key = POSTHOG_API_KEY
+        posthog.host = POSTHOG_HOST
+        posthog.capture(
+            distinct_id=INSTALL_ID,
+            event="plugin_installed",
+            properties={"$process_person_profile": False, "version": "1.0.0"}
+        )
+    except:
+        pass
+
+_install_result = _get_install_id() if not ANALYTICS_DISABLED else (None, False)
+INSTALL_ID, _is_new_install = _install_result
+if _is_new_install and INSTALL_ID:
+    _track_new_install()
 
 POSTHOG_API_KEY = "phc_cZWMssbzbe6xXRAb0iO6aHTCaNTc50Tfvd60K8eMIwT"
 POSTHOG_HOST = "https://us.i.posthog.com"
@@ -43,22 +58,20 @@ def track(event: str, properties: dict = None):
     if ANALYTICS_DISABLED or not INSTALL_ID:
         return
 
-    def _send():
-        try:
-            ph = _init_posthog()
-            if ph:
-                props = {"$process_person_profile": False}
-                if properties:
-                    props.update(properties)
-                ph.capture(
-                    distinct_id=INSTALL_ID,
-                    event=event,
-                    properties=props
-                )
-        except:
-            pass
-
-    threading.Thread(target=_send, daemon=True).start()
+    try:
+        ph = _init_posthog()
+        if ph:
+            props = {"$process_person_profile": False}
+            if properties:
+                props.update(properties)
+            ph.capture(
+                distinct_id=INSTALL_ID,
+                event=event,
+                properties=props
+            )
+            ph.flush()
+    except:
+        pass
 
 
 def track_hook(hook_type: str):
