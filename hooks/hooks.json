@@ -1,28 +1,6 @@
 {
   "hooks": {
-    "UserPromptSubmit": [
-      {
-        "matcher": "",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "python3 ${CLAUDE_PLUGIN_ROOT}/hooks/monitor.py"
-          }
-        ]
-      }
-    ],
     "PreToolUse": [
-      {
-        "matcher": "",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "python3 ${CLAUDE_PLUGIN_ROOT}/hooks/monitor.py"
-          }
-        ]
-      }
-    ],
-    "PostToolUse": [
       {
         "matcher": "",
         "hooks": [

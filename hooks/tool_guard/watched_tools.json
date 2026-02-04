@@ -1,88 +1,217 @@
 {
-  "mcp-write-external": [
-    "mcp__atlassian__createConfluencePage",
-    "mcp__atlassian__updateConfluencePage",
-    "mcp__atlassian__createConfluenceFooterComment",
-    "mcp__atlassian__createConfluenceInlineComment",
-    "mcp__atlassian__createJiraIssue",
-    "mcp__atlassian__editJiraIssue",
-    "mcp__atlassian__addCommentToJiraIssue",
-    "mcp__atlassian__transitionJiraIssue",
-    "mcp__atlassian__addWorklogToJiraIssue"
-  ],
   "bash-write-external": {
-    "scp": [
-      "scp\\s+.*\\s+[^\\s]+@[^\\s]+:"
-    ],
-    "rsync": [
-      "rsync\\s+.*\\s+[^\\s]+@[^\\s]+:"
-    ],
-    "sftp": [
-      "sftp\\s+.*[^\\s]+@"
-    ],
-    "curl": [
-      "curl\\s+.*(-X\\s*(POST|PUT|PATCH|DELETE)|--data|-d\\s|--upload-file|-T\\s|-F\\s)"
-    ],
-    "wget": [
-      "wget\\s+.*--post-data|wget\\s+.*--method\\s*(POST|PUT)"
-    ],
-    "ssh": [
-      "ssh\\s+.*[^\\s]+@[^\\s]+.*['\"]?[^'\"]+['\"]?"
-    ],
-    "git": [
-      "git\\s+(push|remote\\s+add)"
-    ],
-    "docker": [
-      "docker\\s+(push|login)"
-    ],
-    "aws": [
-      "aws\\s+s3\\s+(cp|sync|mv)\\s+.*\\s+s3://",
-      "aws\\s+.*--upload"
-    ],
-    "gcloud": [
-      "gcloud\\s+.*upload|gsutil\\s+(cp|rsync)\\s+.*\\s+gs://"
-    ],
-    "kubectl": [
-      "kubectl\\s+(apply|create|delete|patch)"
-    ],
-    "npm": [
-      "npm\\s+publish"
-    ],
-    "pip": [
-      "pip\\s+upload|twine\\s+upload"
-    ],
-    "nc": [
-      "nc\\s+"
-    ],
-    "netcat": [
-      "netcat\\s+"
-    ],
-    "telnet": [
-      "telnet\\s+"
-    ],
-    "ftp": [
-      "ftp\\s+"
-    ],
-    "mail": [
-      "mail\\s+",
-      "sendmail\\s+"
-    ],
+    "mkdir": [],
+    "cp": [],
+    "mv": [],
+    "rm": [],
     "cat": [],
-    "ls": [],
-    "grep": [],
-    "find": [],
     "head": [],
     "tail": [],
     "less": [],
     "more": [],
+    "grep": [],
+    "find": [],
+    "ls": [],
     "pwd": [],
     "cd": [],
+    "chmod": [],
+    "chown": [],
+    "touch": [],
+    "tar": [],
+    "zip": [],
+    "unzip": [],
+    "ln": [],
+    "wc": [],
+    "sort": [],
+    "uniq": [],
+    "diff": [],
+    "sed": [],
+    "awk": [],
+    "xargs": [],
+    "tee": [],
+    "gzip": [],
+    "gunzip": [],
+    "bzip2": [],
+    "xz": [],
+    "ps": [],
+    "top": [],
+    "htop": [],
+    "kill": [],
+    "pkill": [],
+    "df": [],
+    "du": [],
+    "free": [],
+    "uptime": [],
+    "whoami": [],
+    "id": [],
+    "date": [],
+    "env": [],
+    "export": [],
     "echo": [],
+    "printf": [],
     "which": [],
     "man": [],
+    "vim": [],
+    "nano": [],
+    "emacs": [],
+    "systemctl": [],
+    "service": [],
+    "crontab": [],
+    "ping": [],
+    "traceroute": [],
+    "dig": [],
+    "nslookup": [],
+    "host": [],
     "python": [],
     "python3": [],
     "node": [],
-    "htop": []
+    "ruby": [],
+    "perl": [],
+    "php": [],
+    "java": [],
+    "go": [],
+    "make": [],
+    "cmake": [],
+    "sqlite3": [],
+    "curl": [
+      "curl\\s+.*-d\\s",
+      "curl\\s+.*--data",
+      "curl\\s+.*-F\\s",
+      "curl\\s+.*--form",
+      "curl\\s+.*-T\\s",
+      "curl\\s+.*--upload-file",
+      "curl\\s+.*-X\\s+(POST|PUT|PATCH|DELETE)"
+    ],
+    "wget": [
+      "wget\\s+.*--post-data",
+      "wget\\s+.*--post-file",
+      "wget\\s+.*--method\\s*=?\\s*(POST|PUT|DELETE)"
+    ],
+    "scp": ["scp\\s+.*\\s+\\S+@\\S+:\\S*$"],
+    "rsync": ["rsync\\s+.*\\s+\\S+@\\S+:\\S*$"],
+    "sftp": ["sftp\\s+"],
+    "ftp": ["ftp\\s+\\S"],
+    "rclone": [
+      "rclone\\s+(copy|move|sync|copyto|moveto)\\s+[^:]\\S*\\s+\\S+:",
+      "rclone\\s+(delete|purge|rmdir|rmdirs)\\s+\\S+:",
+      "rclone\\s+(mkdir|touch)\\s+\\S+:"
+    ],
+    "ssh": ["ssh\\s+\\S+@\\S+", "ssh\\s+-"],
+    "telnet": ["telnet\\s+\\S"],
+    "nc": ["nc\\s+\\S+\\s+\\d+", "nc\\s+-[^h]"],
+    "netcat": ["netcat\\s+\\S+\\s+\\d+", "netcat\\s+-"],
+    "git": ["git\\s+push", "git\\s+send-email", "git\\s+send-pack"],
+    "hg": ["hg\\s+push"],
+    "svn": ["svn\\s+(commit|ci)\\b", "svn\\s+import"],
+    "npm": ["npm\\s+publish", "npm\\s+unpublish"],
+    "yarn": ["yarn\\s+publish"],
+    "pnpm": ["pnpm\\s+publish"],
+    "pip": [],
+    "twine": ["twine\\s+upload"],
+    "gem": ["gem\\s+push"],
+    "cargo": ["cargo\\s+publish"],
+    "brew": [],
+    "apt": [],
+    "apt-get": [],
+    "yum": [],
+    "dnf": [],
+    "pacman": [],
+    "docker": ["docker\\s+push", "docker\\s+login"],
+    "podman": ["podman\\s+push", "podman\\s+login"],
+    "kubectl": [
+      "kubectl\\s+(apply|create|delete|patch|replace|edit|set)\\s",
+      "kubectl\\s+exec\\s",
+      "kubectl\\s+cp\\s"
+    ],
+    "helm": [
+      "helm\\s+(install|upgrade|uninstall|delete)\\s",
+      "helm\\s+push"
+    ],
+    "aws": [
+      "aws\\s+s3\\s+(cp|sync|mv)\\s+(?!s3://)\\S+\\s+s3://",
+      "aws\\s+s3\\s+rm\\s+s3://",
+      "aws\\s+s3api\\s+(put-object|delete-object)",
+      "aws\\s+sns\\s+publish",
+      "aws\\s+sqs\\s+send-message",
+      "aws\\s+lambda\\s+update-function",
+      "aws\\s+ec2\\s+(run-instances|terminate-instances|create-|delete-)",
+      "aws\\s+cloudformation\\s+(create-stack|update-stack|delete-stack)"
+    ],
+    "gcloud": [
+      "gcloud\\s+.*storage\\s+cp\\s+(?!gs://)\\S+\\s+gs://",
+      "gcloud\\s+.*compute\\s+.*\\s+(create|delete)\\s",
+      "gcloud\\s+.*app\\s+deploy",
+      "gcloud\\s+.*functions\\s+deploy",
+      "gcloud\\s+.*run\\s+deploy"
+    ],
+    "gsutil": [
+      "gsutil\\s+(-m\\s+)?cp\\s+(?!gs://)\\S+\\s+gs://",
+      "gsutil\\s+(-m\\s+)?mv\\s+(?!gs://)\\S+\\s+gs://",
+      "gsutil\\s+(-m\\s+)?rsync\\s+(?!gs://)\\S+\\s+gs://",
+      "gsutil\\s+rm\\s+gs://"
+    ],
+    "az": [
+      "az\\s+storage\\s+blob\\s+upload",
+      "az\\s+storage\\s+blob\\s+delete",
+      "az\\s+vm\\s+(create|delete)",
+      "az\\s+webapp\\s+deploy"
+    ],
+    "s3cmd": [
+      "s3cmd\\s+put\\s",
+      "s3cmd\\s+sync\\s+(?!s3://)\\S+\\s+s3://",
+      "s3cmd\\s+del\\s+s3://",
+      "s3cmd\\s+rm\\s+s3://"
+    ],
+    "terraform": [
+      "terraform\\s+apply",
+      "terraform\\s+destroy",
+      "terraform\\s+import"
+    ],
+    "ansible": [
+      "ansible\\s+.*-m\\s",
+      "ansible\\s+.*-a\\s"
+    ],
+    "ansible-playbook": ["ansible-playbook\\s+"],
+    "vagrant": [
+      "vagrant\\s+up",
+      "vagrant\\s+provision",
+      "vagrant\\s+destroy"
+    ],
+    "psql": [
+      "psql\\s+.*-h\\s+(?!localhost|127\\.0\\.0\\.1|/tmp/|/var/)\\S+",
+      "psql\\s+.*--host[=\\s]+(?!localhost|127\\.0\\.0\\.1)\\S+",
+      "psql\\s+postgres(ql)?://(?!localhost|127\\.0\\.0\\.1)"
+    ],
+    "mysql": [
+      "mysql\\s+.*-h\\s+(?!localhost|127\\.0\\.0\\.1)\\S+",
+      "mysql\\s+.*--host[=\\s]+(?!localhost|127\\.0\\.0\\.1)\\S+"
+    ],
+    "redis-cli": [
+      "redis-cli\\s+.*-h\\s+(?!localhost|127\\.0\\.0\\.1)\\S+",
+      "redis-cli\\s+.*-u\\s+redis://(?!localhost|127\\.0\\.0\\.1)"
+    ],
+    "mongo": [
+      "mongo\\s+.*-h\\s+(?!localhost|127\\.0\\.0\\.1)\\S+",
+      "mongo\\s+.*--host[=\\s]+(?!localhost|127\\.0\\.0\\.1)\\S+",
+      "mongo\\s+mongodb://(?!localhost|127\\.0\\.0\\.1)\\S+",
+      "mongo\\s+mongodb\\+srv://"
+    ],
+    "mongosh": [
+      "mongosh\\s+.*-h\\s+(?!localhost|127\\.0\\.0\\.1)\\S+",
+      "mongosh\\s+.*--host[=\\s]+(?!localhost|127\\.0\\.0\\.1)\\S+",
+      "mongosh\\s+mongodb://(?!localhost|127\\.0\\.0\\.1)\\S+",
+      "mongosh\\s+mongodb\\+srv://"
+    ],
+    "mail": ["mail\\s+.*@", "mail\\s+-s\\s"],
+    "sendmail": ["sendmail\\s+"],
+    "mutt": ["mutt\\s+"],
+    "gradle": [
+      "gradle\\s+.*publish",
+      "gradle\\s+.*upload"
+    ],
+    "mvn": [
+      "mvn\\s+deploy",
+      "mvn\\s+.*deploy:"
+    ]
   }
 }

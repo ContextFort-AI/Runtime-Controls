@@ -3,39 +3,28 @@ import re
 import subprocess
 import os
 from pathlib import Path
+from bash_guard.checks.utils import split_commands
 
 WATCHED_FILE = Path(__file__).parent / "watched_tools.json"
 
 
 def _load_config():
-    """Load watched_tools.json config."""
     if WATCHED_FILE.exists():
         return json.loads(WATCHED_FILE.read_text())
-    return {"mcp-write-external": [], "bash-write-external": {}}
+    return {"bash-write-external": {}}
 
 
 def _save_config(config):
-    """Save watched_tools.json config."""
     WATCHED_FILE.write_text(json.dumps(config, indent=2))
 
 
-def is_mcp_write_external(tool_name):
-    """Check if an MCP tool writes to external systems."""
-    config = _load_config()
-    return tool_name in config.get("mcp-write-external", [])
-
-
 def get_bash_command_name(command):
-    """Extract the base command name from a bash command string."""
-    # Handle pipes - get first command
     first_part = command.split("|")[0].strip()
 
-    # Handle env vars at start (VAR=val cmd)
     parts = first_part.split()
     for part in parts:
         if "=" in part:
             continue
-        # Skip sudo, env, etc.
         base = part.rsplit("/", 1)[-1].lower()
         if base in ("sudo", "env", "nohup", "time", "nice"):
             continue
@@ -45,13 +34,11 @@ def get_bash_command_name(command):
 
 
 def get_bash_patterns(cmd_name):
-    """Get write-external patterns for a bash command."""
     config = _load_config()
     return config.get("bash-write-external", {}).get(cmd_name, None)
 
 
 def save_bash_patterns(cmd_name, patterns):
-    """Save write-external patterns for a bash command."""
     config = _load_config()
     if "bash-write-external" not in config:
         config["bash-write-external"] = {}
@@ -59,38 +46,59 @@ def save_bash_patterns(cmd_name, patterns):
     _save_config(config)
 
 
-def check_bash_write_external(command):
-    """
-    Check if a bash command matches any write-external patterns.
-    Returns (matches, pattern) if found, (False, None) otherwise.
-    """
-    cmd_name = get_bash_command_name(command)
+def _check_single_command_write_external(subcmd):
+    cmd_name = get_bash_command_name(subcmd)
     if not cmd_name:
-        return False, None
+        return False, None, None
 
     patterns = get_bash_patterns(cmd_name)
     if patterns is None:
-        return None, None  # Unknown command, needs learning
+        return None, None, cmd_name
 
     if not patterns:
-        return False, None  # Known command, no write-external patterns
+        return False, None, None
 
-    # Check if command matches any pattern
     for pattern in patterns:
         try:
-            if re.search(pattern, command, re.IGNORECASE):
-                return True, pattern
+            if re.search(pattern, subcmd, re.IGNORECASE):
+                return True, pattern, None
         except re.error:
             continue
+
+    return False, None, None
+
+
+def check_bash_write_external(command):
+    unknown_cmds = []
+
+    for subcmd in split_commands(command):
+        is_write, pattern, unknown_cmd = _check_single_command_write_external(subcmd)
+
+        if is_write:
+            return True, pattern
+        if unknown_cmd:
+            unknown_cmds.append(unknown_cmd)
+
+    if unknown_cmds:
+        return None, None
 
     return False, None
 
 
+def get_unknown_bash_commands(command):
+    unknown = []
+    for subcmd in split_commands(command):
+        cmd_name = get_bash_command_name(subcmd)
+        if cmd_name:
+            patterns = get_bash_patterns(cmd_name)
+            if patterns is None:
+                unknown.append(cmd_name)
+    return unknown
+
+
 def fetch_command_help(cmd_name):
-    """Fetch man page or --help for a command."""
     help_text = ""
 
-    # Try man page first (summary only)
     try:
         result = subprocess.run(
             ["man", "-f", cmd_name],
@@ -103,7 +111,6 @@ def fetch_command_help(cmd_name):
     except (subprocess.TimeoutExpired, FileNotFoundError):
         pass
 
-    # Try --help
     try:
         result = subprocess.run(
             [cmd_name, "--help"],
@@ -113,13 +120,11 @@ def fetch_command_help(cmd_name):
             env={**os.environ, "LANG": "C"}
         )
         output = result.stdout or result.stderr
-        # Truncate to first 2000 chars
         if output:
             help_text += f"HELP:\n{output[:2000]}\n"
     except (subprocess.TimeoutExpired, FileNotFoundError, PermissionError):
         pass
 
-    # Try man page full (truncated)
     if not help_text:
         try:
             result = subprocess.run(
@@ -138,45 +143,45 @@ def fetch_command_help(cmd_name):
 
 
 def learn_bash_patterns(cmd_name):
-    """
-    Learn write-external patterns for a command using LLM analysis.
-
-    Args:
-        cmd_name: The command name to analyze
-
-    Returns:
-        List of regex patterns for write-external operations
-    """
-    # Import here to avoid circular dependency
     from prompt_guard.llm import ask_haiku
 
     help_text = fetch_command_help(cmd_name)
 
-    system = """You analyze command documentation to identify regex patterns for WRITE-EXTERNAL operations.
+    system = """Return regex patterns matching WRITE-EXTERNAL command usage (sending data to remote systems).
 
-WRITE-EXTERNAL means: sending data OUT of the local machine (uploads, remote writes, API calls, network sends).
-NOT write-external: reading, downloading, local file operations, displaying output.
+WRITE-EXTERNAL:
+- HTTP uploads: curl -d, curl -F, curl -T, curl -X POST/PUT/PATCH/DELETE
+- File transfer TO remote: scp/rsync where user@host: is at END of command
+- Remote shells: ssh, telnet (any connection)
+- Email: mail, sendmail (any usage)
+- Git push: git push, git send-email
+- Publishing: npm publish, cargo publish, gem push, twine upload
+- Remote DB: mysql/psql/redis-cli/mongo with -h pointing to non-localhost
+- Cloud uploads: aws s3 cp TO s3://, gsutil cp TO gs://, az storage upload
+- K8s writes: kubectl apply/create/delete/patch, helm install/upgrade
+- Infrastructure: terraform apply, ansible-playbook (remote execution)
+- Network tools: nc/netcat connections, ftp, sftp, telnet
 
-Return ONLY a JSON array of regex patterns. If no write-external operations, return [].
+NOT write-external: downloads, local ops, localhost connections, package installs (pip/npm/apt install)
 
-Examples:
-- scp: ["scp\\s+.*\\s+.*@.*:"]
-- curl: ["curl\\s+.*(-X\\s*(POST|PUT|PATCH|DELETE)|--data|--upload|-F\\s)"]
-- cat: []
-- ls: []"""
+CORRECT PATTERN EXAMPLES:
+- curl POST/data: ["curl\\s+.*-d\\s", "curl\\s+.*--data", "curl\\s+.*-X\\s+(POST|PUT)"]
+- scp push: ["scp\\s+.*\\s+\\S+@\\S+:\\S*$"]  (remote at END with $ anchor)
+- mysql remote: ["mysql\\s+.*-h\\s+(?!localhost|127\\.0\\.0\\.1)\\S+"]
+- ssh: ["ssh\\s+\\S+@\\S+", "ssh\\s+-"]
+- nc: ["nc\\s+\\S+\\s+\\d+", "nc\\s+-"]
+
+Return JSON array. Empty [] if no write-external capability."""
 
     user = f"Command: {cmd_name}\n\nDocumentation:\n{help_text}"
 
     response = ask_haiku(system, user)
 
-    # Parse JSON response
     try:
-        # Extract JSON array from response
         match = re.search(r'\[.*\]', response, re.DOTALL)
         if match:
             patterns = json.loads(match.group())
             if isinstance(patterns, list):
-                # Validate patterns are valid regex
                 valid_patterns = []
                 for p in patterns:
                     if isinstance(p, str):
@@ -189,4 +194,4 @@ Examples:
     except json.JSONDecodeError:
         pass
 
-    return []  # Default to no patterns if parsing fails
+    return []

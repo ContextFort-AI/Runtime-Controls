@@ -1,10 +1,7 @@
-# Python
 __pycache__/
 *.pyc
 *.pyo
 
-# Analytics (anonymous install ID)
 .install_id
 
-# Sessions
 .sessions/

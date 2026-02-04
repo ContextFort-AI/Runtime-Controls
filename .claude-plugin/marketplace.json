@@ -1,11 +1,11 @@
 {
-  "name": "runtime-monitor-marketplace",
-  "description": "Local marketplace for runtime-monitor plugin",
+  "name": "contextfort-marketplace",
+  "description": "ContextFort security plugins for Claude Code",
   "plugins": [
     {
-      "name": "runtime-monitor",
+      "name": "contextfort",
       "version": "1.0.0",
-      "description": "Runtime security monitor for Claude Code",
+      "description": "Runtime security - blocks write-external commands and dangerous bash patterns",
       "path": "."
     }
   ]

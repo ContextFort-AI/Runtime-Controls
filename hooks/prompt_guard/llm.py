@@ -33,8 +33,9 @@ def ask_haiku(system_prompt, user_message):
         import anthropic
         client = anthropic.Anthropic()
         response = client.messages.create(
-            model="claude-3-5-haiku-20241022",
-            max_tokens=256,
+            model="claude-haiku-4-5",
+            max_tokens=512,
+            temperature=0.2,
             system=system_prompt,
             messages=[{"role": "user", "content": user_message}]
         )

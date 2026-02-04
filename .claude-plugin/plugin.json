@@ -1,9 +1,10 @@
 {
-  "name": "runtime-monitor",
+  "name": "contextfort",
   "version": "1.0.0",
-  "description": "Runtime security monitor for Claude Code - detects prompt injection and verifies user intent for external tool calls",
+  "description": "Runtime security for Claude Code - blocks write-external commands (uploads, pushes, remote DB connections) and dangerous bash patterns",
   "author": {
-    "name": "ashwin"
+    "name": "ContextFort"
   },
-  "homepage": "https://github.com/ashwin/claude-runtime-monitor"
+  "homepage": "https://github.com/ContextFort-AI/Runtime-Controls",
+  "keywords": ["security", "runtime", "hooks", "bash", "write-external"]
 }
