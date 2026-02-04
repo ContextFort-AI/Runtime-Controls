@@ -1,5 +1,5 @@
 {
-  "name": "contextfort",
+  "name": "cf",
   "version": "1.0.0",
   "description": "Runtime security for Claude Code - blocks write-external commands (uploads, pushes, remote DB connections) and dangerous bash patterns",
   "author": {
