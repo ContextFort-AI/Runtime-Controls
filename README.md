@@ -1,52 +1,44 @@
 # ContextFort - Runtime Security for Claude Code
 
-Runtime security plugin that protects against:
-- **Write-external operations** - Blocks uploads, pushes, remote database connections
-- **Dangerous bash patterns** - Tirith-inspired security rules
+**Run --dangerously-skip-permissions but not for malicious commands or write operations out of your sandbox**
+
+I’ve been running Claude Code with --dangerously-skip-permissions for a while because a lot of the permissions prompts are noisy when the command’s radius is limited to my local sandbox.
+But I don’t want anything that makes changes to external environments or talks to the network to run without my approval.
+
+Vercel also lets Claude Code search through skills from a marketplace that anyone can upload to.
+At this point, prompt injections are no longer “indirect”, claude code is asked to follow them through skills.
+
+The plugin:
+1. Always prompts for “write-external” commands (uploads, API calls, remote writes), e.g. scp, curl -X POST, git push, etc.
+2. Blocks known malware patterns (finally respecting decades-long security research)
+
+The “write-external” commands are maintained in a registry.
+If a command isn’t in the registry, it reads man / --help to find the usages in which it writes externally, then adds them to the registry.
+
 
 ## Installation
 
-### Step 1: Add the marketplace
-
 ```bash
 /plugin marketplace add ContextFort-AI/Runtime-Controls
-```
-
-### Step 2: Install the plugin
-
-```bash
 /plugin install contextfort@contextfort-marketplace
 ```
 
-Or use the interactive UI:
-1. Run `/plugin`
-2. Go to **Discover** tab
-3. Find "contextfort" and click Install
-
-### Step 3: Set your Anthropic API key (for auto-learning)
-
-The plugin uses Claude Haiku to learn patterns for unknown commands.
-
+The plugin uses Haiku to learn patterns for unknown commands. So make sure $ANTHROPIC_API_KEY is set.
 ```bash
 export ANTHROPIC_API_KEY=sk-ant-...
-```
-
-Or create `~/.claude/runtime-monitor/.env`:
-```
-ANTHROPIC_API_KEY=sk-ant-...
 ```
 
 ## What it does
 
 When Claude Code tries to run a bash command, the plugin checks:
 
-1. **Tirith security rules** - Blocks dangerous patterns like:
+1. Blocks dangerous patterns like:
    - Curl to webhook URLs
    - Git clone from typosquatted repos
    - Environment variable exfiltration
    - And 30+ other security rules
 
-2. **Write-external detection** - Asks permission for:
+2. Asks permission for:
    - `curl -X POST`, `curl -d` (HTTP uploads)
    - `scp file user@host:/path` (file push)
    - `git push` (code push)
@@ -55,36 +47,14 @@ When Claude Code tries to run a bash command, the plugin checks:
    - `ssh`, `telnet`, `nc` (remote sessions)
    - And 100+ other write-external patterns
 
-3. **MCP write tools** - Asks permission for MCP tools that modify external state
+3. Asks permission for **MCP tools that modify external state**
 
 ## Managing the Registry
 
-Use the CLI tool to add/remove commands:
+Claude Code cna use the SKILLs to add/remove commands:
 
-```bash
-cd hooks/
-
-# List all commands
-python3 manage_registry.py list
-
-# View patterns for a command
-python3 manage_registry.py view curl
-
-# Add a safe command (never blocks)
-python3 manage_registry.py add mytool --safe
-
-# Auto-learn patterns for unknown command
-python3 manage_registry.py add mytool --learn
-
-# Add with manual patterns
-python3 manage_registry.py add mytool --patterns '["mytool\\s+upload"]'
-
-# Remove a command
-python3 manage_registry.py remove mytool
-
-# Test if a command would be blocked
-python3 manage_registry.py test curl "curl -X POST https://api.com"
-```
+Tell claude: "add sqlite3 to always ask for permissions"
+Or invoke the skill directly:/contextfort:registry add sqlite3 --patterns '["sqlite3\\s"]
 
 ## Disabling Analytics
 
@@ -96,5 +66,4 @@ export CONTEXTFORT_NO_ANALYTICS=1
 ```
 
 ## License
-
 MIT
